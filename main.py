@@ -151,8 +151,49 @@ lst_data.write_scores('lst/lst.out_bsg', scores)
 #plt.show()
 
 # %% ==== EMBED ALIGN MODEL: load existing model & perform LST ====
+# On full sentence lengths
 
 filename = "ea_model_final231164_50_0-1.01_64"
+
+checkpoint = torch.load(filename)
+start_epoch = checkpoint['epoch']
+epoch_data = checkpoint['epoch_data']        
+word_to_id1 = checkpoint['word_to_id1']
+word_to_id2 = checkpoint['word_to_id2']
+id_to_word1 = checkpoint['id_to_word1']
+id_to_word2 = checkpoint['id_to_word2']
+vocab_size1 = checkpoint['vocab_size1']
+vocab_size2 = checkpoint['vocab_size2']
+max_length_L1 = checkpoint['max_length_L1']
+num_pairs = checkpoint['num_pairs']
+embedding_dim = checkpoint['embedding_dim']
+
+# Initialize the models
+mod_encoder = ea_m.ea_encoder(vocab_size1, embedding_dim)
+mod_posterior_mu = ea_m.ea_posterior_mu(embedding_dim)
+mod_posterior_sigma = ea_m.ea_posterior_sigma(embedding_dim)
+mod_decoder_L1 = ea_m.ea_decoder(vocab_size1, embedding_dim)
+mod_decoder_L2 = ea_m.ea_decoder(vocab_size2, embedding_dim)
+
+# Combine them into the modules
+modules = nn.ModuleList()
+modules.append(mod_encoder)
+modules.append(mod_posterior_mu) 
+modules.append(mod_posterior_sigma) 
+modules.append(mod_decoder_L1)       
+modules.append(mod_decoder_L2)
+    
+modules.load_state_dict(checkpoint['state_dict'])
+top_words = word_to_id1.keys()
+lst_dataset = lst_data.read_lst_data_ea(top_words, max_length_L1)
+candidates, _ = lst_data.get_candidates()
+scores = sw.get_scores_ea(modules, lst_dataset, candidates, word_to_id1)
+lst_data.write_scores('lst/lst.out_ea_all', scores)
+
+# %% ==== EMBED ALIGN MODEL: load existing model & perform LST ====
+# On sentence length of 10
+
+filename = "ea_model_FINAL_2_231164_500_0-1.01_64"
 
 checkpoint = torch.load(filename)
 start_epoch = checkpoint['epoch']
